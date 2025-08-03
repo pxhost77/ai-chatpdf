@@ -14,6 +14,7 @@ from langchain.chains import RetrievalQA
 import streamlit as st
 import tempfile
 import os
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from streamlit_extras.buy_me_a_coffee import button
 button(username="nevido", floating=True, width=221)
@@ -76,6 +77,18 @@ if uploaded_file is not None:
 
     # load it into Chrom
     db = Chroma.from_documents(texts,embedding_model)
+    
+    # Stream 받아줄 핸들러 만들기
+    from langchain_core.callbacks.base import BaseCallbackHandler
+    
+    class StreamHandler(BaseCallbackHandler):
+        def __init__(self,  container, initial_text=""):
+            self.container = container
+            self.text=initial_text
+        def on_llm_new_token(self, token: str, **kwargs) -> None:
+            self.text+=token
+            self.container.markdown(self.text)
+        
 
     #  Question
     st.header("PDF에게 질문해보세요!")
@@ -94,8 +107,10 @@ if uploaded_file is not None:
     # docs = retriver_from_llm.get_relevant_documents(query=question)
     # print(len(docs))
     # print(docs)
-            llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0,api_key=my_key)
+            chat_box = st.empty()
+            llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0,api_key=my_key,streaming=True,callbacks=[stream_hander])
             qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=db.as_retriever())
             result = qa_chain({"query": question})
             # print(result)
             st.write(result["result"])
+
