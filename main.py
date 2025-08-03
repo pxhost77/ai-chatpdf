@@ -2,28 +2,39 @@ __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-#from dotenv import load_dotenv
-#load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain.chains import RetrievalQA
 import streamlit as st
 import tempfile
 import os
 
-
 from streamlit_extras.buy_me_a_coffee import button
 button(username="nevido", floating=True, width=221)
+
+# from langchain_openai import OpenAIEmbeddings
+# help(OpenAIEmbeddings)
 
 st.title("ChatPDF")
 st.write("---")
 
-# OpenAI KEY입력 받기
-openai_key = st.text_input("OPEN_AI_API_KEY",type="password")
+# OpenAI KEY 입력 받기
+my_key = st.text_input('Enter your OpenAI API Key', type="password")
+
+if my_key:
+    try:
+        embeddings = OpenAIEmbeddings(openai_api_key=my_key)
+        st.success("✅ API 키가 정상적으로 적용되었습니다.")
+    except Exception as e:
+        st.error(f"❌ 오류 발생: {e}")
+        
+
 # 파일 업로드
 
 uploaded_file = st.file_uploader("PDF 파일을 올려주세요", type=['pdf'])
@@ -39,6 +50,9 @@ def pdf_to_document(uploaded_file):
     pages = loader.load_and_split()
     return pages
 
+if uploaded_file is not None:
+    with st.spinner("📖 PDF 파일 처리 중..."):
+        pages = pdf_to_document(uploaded_file)
 #업로드되면 동작하는 코드
 
 if uploaded_file is not None:
@@ -58,7 +72,7 @@ if uploaded_file is not None:
     texts = text_splitter.split_documents(pages)
 
     # Embedding
-    embedding_model = OpenAIEmbeddings(openai_api_key=openai_key)
+    embedding_model = OpenAIEmbeddings(api_key=my_key)
 
     # load it into Chrom
     db = Chroma.from_documents(texts,embedding_model)
@@ -80,9 +94,8 @@ if uploaded_file is not None:
     # docs = retriver_from_llm.get_relevant_documents(query=question)
     # print(len(docs))
     # print(docs)
-            llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0,openai_api_key=openai_key)
+            llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0,api_key=my_key)
             qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=db.as_retriever())
             result = qa_chain({"query": question})
             # print(result)
             st.write(result["result"])
-
