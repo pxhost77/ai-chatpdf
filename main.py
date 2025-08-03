@@ -2,23 +2,28 @@ __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
-from dotenv import load_dotenv
-load_dotenv()
+#from dotenv import load_dotenv
+#load_dotenv()
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
-from langchain.chat_models import ChatOpenAI
-#from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain.chains import RetrievalQA
 import streamlit as st
 import tempfile
 import os
 
+
+from streamlit_extras.buy_me_a_coffee import button
+button(username="nevido", floating=True, width=221)
+
 st.title("ChatPDF")
 st.write("---")
 
+# OpenAI KEY입력 받기
+openai_key = st.text_input("OPEN_AI_API_KEY",type="password")
 # 파일 업로드
 
 uploaded_file = st.file_uploader("PDF 파일을 올려주세요", type=['pdf'])
@@ -53,7 +58,7 @@ if uploaded_file is not None:
     texts = text_splitter.split_documents(pages)
 
     # Embedding
-    embedding_model = OpenAIEmbeddings()
+    embedding_model = OpenAIEmbeddings(openai_api_key=openai_key)
 
     # load it into Chrom
     db = Chroma.from_documents(texts,embedding_model)
@@ -75,9 +80,8 @@ if uploaded_file is not None:
     # docs = retriver_from_llm.get_relevant_documents(query=question)
     # print(len(docs))
     # print(docs)
-            llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+            llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0,openai_api_key=openai_key)
             qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=db.as_retriever())
             result = qa_chain({"query": question})
             # print(result)
             st.write(result["result"])
-
