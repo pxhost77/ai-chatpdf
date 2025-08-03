@@ -108,9 +108,11 @@ if uploaded_file is not None:
     # print(len(docs))
     # print(docs)
             chat_box = st.empty()
+            stream_hander = StreamHandler(chat_box)
             llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0,api_key=my_key,streaming=True,callbacks=[stream_hander])
             qa_chain = RetrievalQA.from_chain_type(llm=llm, retriever=db.as_retriever())
-            result = qa_chain({"query": question})
+            qa_chain({"query": question})
             # print(result)
-            st.write(result["result"])
+            # st.write(result["result"])
+
 
